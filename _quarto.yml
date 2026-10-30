@@ -1,0 +1,44 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Europe vs. America: Olympic History"
+  navbar:
+    background: "#151c33"
+    foreground: "#f8fafc"
+    pinned: true
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "USA vs Europe"
+        href: usa-vs-europe.qmd
+      - text: "Sports"
+        href: sports.qmd
+      - text: "About"
+        href: about.qmd
+    right:
+      - icon: github
+        href: https://github.com/emmaacedoo/milestone-4
+        aria-label: "GitHub Repository"
+  page-footer:
+    background: "#0b1021"
+    foreground: "#cbd5e1"
+    left: "Created by Emma Acedo Lapieza · Milestone 4"
+    right: "Data: 120 Years of Olympic History (1896–2016) · Kaggle"
+
+format:
+  html:
+    theme: darkly
+    css: styles.css
+    toc: true
+    toc-title: "On This Page"
+    page-layout: full
+    code-fold: true
+    code-summary: "Show R Code"
+    embed-resources: false
+
+execute:
+  echo: true
+  warning: false
+  message: false

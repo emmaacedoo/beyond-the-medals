@@ -1,0 +1,271 @@
+---
+title: "USA vs. Europe: 120 Years of Olympic Competition"
+subtitle: "Comparing Medal Totals Over Time, Individual Nations, and Spain's Olympic Rise (1896–2016)"
+author: "Emma Acedo Lapieza"
+date: today
+---
+
+```{r}
+#| label: setup-usa-europe
+
+library(tidyverse)
+library(plotly)
+
+# Load the Kaggle Olympic dataset (271,116 rows and 15 columns)
+olympics <- read_csv("data/athlete_events.csv", show_col_types = FALSE)
+
+# Define our consistent group of 12 major European Olympic countries (including Spain)
+euro_nocs <- c(
+  "ESP", # Spain
+  "GBR", # Great Britain
+  "FRA", # France
+  "GER", # Germany
+  "ITA", # Italy
+  "SWE", # Sweden
+  "NOR", # Norway
+  "NED", # Netherlands
+  "HUN", # Hungary
+  "FIN", # Finland
+  "SUI", # Switzerland
+  "POL"  # Poland
+)
+
+# Count only one medal per unique event and country so team sports are not overcounted
+medals_unique <- olympics |>
+  filter(!is.na(Medal)) |> # Keep only medal-winning entries
+  distinct(Year, Season, Games, Sport, Event, NOC, Medal) # Deduplicate team medals
+```
+
+```{=html}
+<div class="kpi-grid">
+  <div class="kpi-box pink">
+    <div class="kpi-value">2,823</div>
+    <div class="kpi-label">USA Unique Event Medals</div>
+  </div>
+  <div class="kpi-box purple">
+    <div class="kpi-value">6,849</div>
+    <div class="kpi-label">Selected Europe (12 Countries)</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-value">1,004</div>
+    <div class="kpi-label">Top European Country (Germany)</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-value">150</div>
+    <div class="kpi-label">Spain Unique Event Medals</div>
+  </div>
+</div>
+```
+
+## Methodology: Counting Medals Fairly & Defining Europe
+
+::: {.dashboard-card}
+Two important methodological choices from Milestone 3 make our comparisons between the United States and Europe accurate and fair:
+
+1. **Counting unique event medals instead of athlete rows:** In the raw dataset, every player on a winning basketball, soccer, or rowing team gets their own row. If we simply counted rows, a single basketball gold medal would count as 12 medals! To avoid overcounting team sports, I use `distinct(Year, Season, Games, Sport, Event, NOC, Medal)` so that each country receives **one medal per event**.
+2. **Consistent European Selection (12 Countries):** Throughout all charts, I use a clearly defined set of 12 European Olympic countries: **Spain (`ESP`), Great Britain (`GBR`), France (`FRA`), Germany (`GER`), Italy (`ITA`), Sweden (`SWE`), Norway (`NOR`), Netherlands (`NED`), Hungary (`HUN`), Finland (`FIN`), Switzerland (`SUI`), and Poland (`POL`)**.
+
+::: {.note-callout}
+**Why Group vs. Individual Comparisons Matter:** Comparing the **United States (`2,823` medals)** against **12 European countries combined (`6,849` medals)** is very different from comparing individual countries. In the Olympics, each European nation sends its own full delegation of athletes and teams, so combining 12 countries naturally produces a larger group total. However, when we compare **individual countries one-on-one**, the United States (`2,823` medals) has won nearly three times as many medals as the highest-ranking European country in our group, Germany (`1,004`), followed by Great Britain (`919`) and France (`879`).
+:::
+:::
+
+---
+
+## 1. USA vs. Europe: Olympic Medals Over Time (1896–2016)
+
+::: {.dashboard-card}
+This interactive chart tracks total unique event medals won in each Olympic year from **1896 to 2016** (combining Summer and Winter Games held in the same year). You can hover over any point to see the exact year and medal total.
+
+Notice how the 12 European countries combined usually win more medals as a group, while the United States alone reaches massive peaks (such as **1904 in St. Louis** and **1984 in Los Angeles**) and competes closely with an entire continent's worth of teams.
+
+```{r}
+#| label: chart-1-medals-over-time
+#| fig-height: 5.5
+
+# Count unique event medals by Year for the USA vs. the 12 selected European countries
+medals_by_year <- medals_unique |>
+  filter(NOC %in% c("USA", euro_nocs)) |>
+  mutate(
+    Group = if_else(
+      NOC == "USA",
+      "United States (USA)",
+      "Selected Europe (12 Countries Combined)"
+    )
+  ) |>
+  count(Year, Group, name = "Medals")
+
+# Create the ggplot2 time-series line chart
+p1 <- ggplot(medals_by_year, aes(x = Year, y = Medals, color = Group)) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2.3) +
+  scale_color_manual(
+    values = c(
+      "Selected Europe (12 Countries Combined)" = "#a855f7",
+      "United States (USA)" = "#fbbf24"
+    )
+  ) +
+  scale_x_continuous(breaks = seq(1896, 2016, by = 16)) +
+  labs(
+    title = "USA vs. Selected European Countries: Unique Event Medals Over Time",
+    subtitle = "Combined Summer & Winter Olympic medals per Olympic year (1896–2016)",
+    x = "Olympic Year",
+    y = "Unique Event Medals Won",
+    color = "Region / Group"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.background = element_rect(fill = "#151c33", color = NA),
+    panel.background = element_rect(fill = "#151c33", color = NA),
+    panel.grid.major = element_line(color = "#2a3558"),
+    panel.grid.minor = element_blank(),
+    text = element_text(color = "#f8fafc"),
+    axis.text = element_text(color = "#cbd5e1"),
+    legend.position = "top"
+  )
+
+# Convert to an interactive Plotly chart
+ggplotly(p1, tooltip = c("x", "y", "colour")) |>
+  layout(
+    paper_bgcolor = "#151c33",
+    plot_bgcolor = "#151c33",
+    font = list(color = "#f8fafc"),
+    legend = list(orientation = "h", x = 0.05, y = 1.12)
+  )
+```
+:::
+
+---
+
+## 2. Country-by-Country Breakdown: USA vs. Each of the 12 European Nations
+
+::: {.dashboard-card}
+To see how the **United States** compares against each of the **12 European countries individually**, the interactive stacked bar chart below breaks down total unique event medals (`Gold`, `Silver`, and `Bronze`) won by each country from **1896 to 2016**.
+
+Viewed nation by nation, the **United States (`2,823` total medals: `1,131` Gold, `901` Silver, `791` Bronze)** stands far ahead of every individual European country, followed by **Germany (`1,004`)**, **Great Britain (`919`)**, **France (`879`)**, **Italy (`722`)**, and **Sweden (`657`)**.
+
+```{r}
+#| label: chart-2-country-breakdown
+#| fig-height: 6
+
+# Map NOC codes to readable country labels
+country_labels <- c(
+  "USA" = "United States (USA)",
+  "GER" = "Germany (GER)",
+  "GBR" = "Great Britain (GBR)",
+  "FRA" = "France (FRA)",
+  "ITA" = "Italy (ITA)",
+  "SWE" = "Sweden (SWE)",
+  "HUN" = "Hungary (HUN)",
+  "NOR" = "Norway (NOR)",
+  "FIN" = "Finland (FIN)",
+  "NED" = "Netherlands (NED)",
+  "SUI" = "Switzerland (SUI)",
+  "POL" = "Poland (POL)",
+  "ESP" = "Spain (ESP)"
+)
+
+country_medals <- medals_unique |>
+  filter(NOC %in% c("USA", euro_nocs)) |>
+  mutate(
+    Country = country_labels[NOC],
+    Medal = factor(Medal, levels = c("Gold", "Silver", "Bronze"))
+  ) |>
+  count(Country, Medal, name = "Medals") |>
+  mutate(Country = fct_reorder(Country, Medals, .fun = sum))
+
+p_countries <- ggplot(country_medals, aes(x = Country, y = Medals, fill = Medal)) +
+  geom_col(width = 0.72) +
+  coord_flip() +
+  scale_fill_manual(
+    values = c(
+      "Gold" = "#fbbf24",
+      "Silver" = "#cbd5e1",
+      "Bronze" = "#ec4899"
+    )
+  ) +
+  labs(
+    title = "Individual Country Comparison: USA vs. 12 European Nations (1896–2016)",
+    subtitle = "Total unique event medals broken down by Gold, Silver, and Bronze",
+    x = "Country (NOC)",
+    y = "Unique Event Medals Won",
+    fill = "Medal Type"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.background = element_rect(fill = "#151c33", color = NA),
+    panel.background = element_rect(fill = "#151c33", color = NA),
+    panel.grid.major = element_line(color = "#2a3558"),
+    panel.grid.minor = element_blank(),
+    text = element_text(color = "#f8fafc"),
+    axis.text = element_text(color = "#cbd5e1"),
+    legend.position = "top"
+  )
+
+ggplotly(p_countries, tooltip = c("x", "y", "fill")) |>
+  layout(
+    paper_bgcolor = "#151c33",
+    plot_bgcolor = "#151c33",
+    font = list(color = "#f8fafc"),
+    legend = list(orientation = "h", x = 0.25, y = 1.12)
+  )
+```
+:::
+
+---
+
+## 3. Focus on Spain: Olympic Medal History (1900–2016)
+
+::: {.dashboard-card}
+Because I am from Spain (`ESP`), I wanted to take a closer look at how Spain's Olympic performance has evolved over time. Through 2016, Spain has won **150 unique event medals** (**45 Gold**, **63 Silver**, and **42 Bronze**), with its top sports being **Sailing (19 medals)**, **Canoeing (16)**, **Cycling (15)**, **Athletics (14)**, and **Tennis (12)**.
+
+As the chart below clearly shows, **1992 was the turning point in Spanish Olympic history**. When Barcelona hosted the 1992 Summer Olympics, Spain invested heavily in athlete training and won **23 total medals in 1992** (22 in Summer—including 13 Golds—and 1 Bronze in Winter). Since 1992, Spain has remained a strong Olympic contender at every Summer Games through 2016.
+
+```{r}
+#| label: chart-3-spain-history
+#| fig-height: 5.5
+
+# Filter unique medals for Spain (ESP) and order Medal factor levels
+spain_medals <- medals_unique |>
+  filter(NOC == "ESP") |>
+  mutate(Medal = factor(Medal, levels = c("Gold", "Silver", "Bronze"))) |>
+  count(Year, Medal, name = "Medals")
+
+# Create a stacked bar chart of Spain's medals over time
+p3 <- ggplot(spain_medals, aes(x = Year, y = Medals, fill = Medal)) +
+  geom_col(width = 2.8) +
+  scale_fill_manual(
+    values = c(
+      "Gold" = "#fbbf24",   # Gold accent
+      "Silver" = "#cbd5e1", # Crisp silver
+      "Bronze" = "#ec4899"  # Vibrant pink accent for Bronze
+    )
+  ) +
+  scale_x_continuous(breaks = seq(1900, 2016, by = 8)) +
+  labs(
+    title = "Spain's Olympic Medal History by Medal Type (1900–2016)",
+    subtitle = "Notice the dramatic breakthrough at the 1992 Barcelona Games (23 total medals)",
+    x = "Olympic Year",
+    y = "Unique Event Medals Won by Spain",
+    fill = "Medal Type"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.background = element_rect(fill = "#151c33", color = NA),
+    panel.background = element_rect(fill = "#151c33", color = NA),
+    panel.grid.major = element_line(color = "#2a3558"),
+    panel.grid.minor = element_blank(),
+    text = element_text(color = "#f8fafc"),
+    axis.text = element_text(color = "#cbd5e1"),
+    legend.position = "top"
+  )
+
+ggplotly(p3, tooltip = c("x", "y", "fill")) |>
+  layout(
+    paper_bgcolor = "#151c33",
+    plot_bgcolor = "#151c33",
+    font = list(color = "#f8fafc"),
+    legend = list(orientation = "h", x = 0.25, y = 1.12)
+  )
+```
+:::

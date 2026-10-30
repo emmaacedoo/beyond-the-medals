@@ -1,0 +1,226 @@
+---
+title: "Europe vs. America: Who Dominates the Olympics?"
+subtitle: "Milestone 4 · Exploring 120 Years of Olympic History (1896–2016)"
+author: "Emma Acedo Lapieza"
+date: today
+---
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(plotly)
+
+# Load the Kaggle Olympic dataset (271,116 rows and 15 columns)
+# If the local CSV is missing, inform how to place or download it from Kaggle
+if (!file.exists("data/athlete_events.csv")) {
+  stop("Dataset file 'data/athlete_events.csv' not found. Please place the Kaggle '120 Years of Olympic History' CSV in the data/ folder.")
+}
+
+olympics <- read_csv("data/athlete_events.csv", show_col_types = FALSE)
+
+# Define a consistent group of 12 major European Olympic countries (including Spain)
+euro_nocs <- c(
+  "ESP", # Spain
+  "GBR", # Great Britain
+  "FRA", # France
+  "GER", # Germany
+  "ITA", # Italy
+  "SWE", # Sweden
+  "NOR", # Norway
+  "NED", # Netherlands
+  "HUN", # Hungary
+  "FIN", # Finland
+  "SUI", # Switzerland
+  "POL"  # Poland
+)
+
+# Prepare individual medal-winning athlete observations with non-missing Age and Height
+# Each row represents a single individual athlete-event observation (n = 14,553)
+set.seed(2026)
+medalists_individual <- olympics |>
+  filter(
+    NOC %in% c("USA", euro_nocs),
+    !is.na(Medal),
+    !is.na(Age),
+    !is.na(Height)
+  ) |>
+  mutate(
+    Region = if_else(
+      NOC == "USA",
+      "United States (USA)",
+      "Selected Europe (12 Countries)"
+    ),
+    # Small deterministic jitter (+/- 0.35) so athletes with identical integer Age & Height don't stack
+    Age_Plot = Age + runif(n(), -0.35, 0.35),
+    Height_Plot = Height + runif(n(), -0.35, 0.35),
+    Hover_Info = paste0(
+      "<b>", Name, "</b> (", Team, " · ", NOC, ")<br>",
+      "Region: ", Region, "<br>",
+      "Age: <b>", Age, " yrs</b> | Height: <b>", Height, " cm</b>",
+      if_else(!is.na(Weight), paste0(" | Weight: ", Weight, " kg"), ""), "<br>",
+      "Games: ", Games, " (", City, ")<br>",
+      "Sport: ", Sport, "<br>",
+      "Event: ", Event, "<br>",
+      "Medal: <b>", Medal, "</b>"
+    )
+  )
+```
+
+```{=html}
+<div class="kpi-grid">
+  <div class="kpi-box">
+    <div class="kpi-value">271,116</div>
+    <div class="kpi-label">Total Athlete Entries (1896–2016)</div>
+  </div>
+  <div class="kpi-box pink">
+    <div class="kpi-value">14,553</div>
+    <div class="kpi-label">Individual Medalists Plotted Below</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-value">2,823</div>
+    <div class="kpi-label">USA Unique Event Medals</div>
+  </div>
+  <div class="kpi-box purple">
+    <div class="kpi-value">6,849</div>
+    <div class="kpi-label">Selected Europe (12 Countries)</div>
+  </div>
+</div>
+```
+
+## Welcome & Project Introduction
+
+::: {.dashboard-card}
+I decided to study the Olympics because I really like sports and I am interested in comparing the United States with European countries. I want to see who has won more medals, how the physical profiles of Olympic medalists compare, which sports different countries are best at, and how Olympic results have changed over time. I also focus on **Spain (`ESP`)** because I am from there.
+
+This website expands my Milestone 2 and Milestone 3 work using the [**120 Years of Olympic History: Athletes and Results**](https://www.kaggle.com/datasets/heesoo37/120-years-of-olympic-history-athletes-and-results) dataset from Kaggle. The full dataset contains **271,116 athlete-event rows and 15 columns**, covering both Summer and Winter Olympic Games from **1896 to 2016**. Because the dataset ends in **2016**, more recent Olympic Games (such as Tokyo 2020 or Paris 2024) are not included in this analysis.
+
+<div class="nav-cards">
+  <div class="nav-card">
+    <h3><a href="usa-vs-europe.html">USA vs. Europe →</a></h3>
+    <p>Explore 120 years of Olympic medal trends over time, individual country comparisons, and Spain's 1992 Barcelona breakthrough.</p>
+  </div>
+  <div class="nav-card">
+    <h3><a href="sports.html">Sports Comparisons →</a></h3>
+    <p>See which Olympic sports the United States, the 12 European nations, and Spain dominate across Summer and Winter Games.</p>
+  </div>
+  <div class="nav-card">
+    <h3><a href="about.html">About the Project →</a></h3>
+    <p>Learn more about the author (Emma Acedo Lapieza), project methodology, and full Kaggle dataset attribution.</p>
+  </div>
+</div>
+:::
+
+---
+
+## Athlete Physical Profiles: Age vs. Height (`14,553` Individual Observations)
+
+::: {.dashboard-card}
+Rather than looking only at aggregated totals, the interactive scatterplot below plots **14,553 individual medal-winning athlete observations directly** from **1896 to 2016**—every single medalist entry with recorded `Age` and `Height` from the **United States (`4,595` individual observations)** and our **12 selected European countries (`9,958` individual observations: `ESP`, `GBR`, `FRA`, `GER`, `ITA`, `SWE`, `NOR`, `NED`, `HUN`, `FIN`, `SUI`, and `POL`)**.
+
+- **Each point is one individual athlete-event observation** (not an average or aggregated group).
+- **Hover over any point** to inspect that athlete's name, country (`NOC`), exact age (`years`), exact height (`cm`), weight (`kg`), Olympic Games, sport, event, and medal won (`Gold`, `Silver`, or `Bronze`).
+- **Click items in the legend** to toggle between the United States (`#fbbf24` gold) and Selected Europe (`#a855f7` purple), or drag to zoom into specific age and height ranges.
+
+```{r}
+#| label: home-age-height-scatterplot
+#| fig-height: 6.5
+
+# Build the scatterplot of 14,553 individual medal-winning athlete observations
+p_scatter <- ggplot(
+  medalists_individual,
+  aes(x = Age_Plot, y = Height_Plot, color = Region)
+) +
+  geom_point(
+    aes(text = Hover_Info),
+    alpha = 0.48,
+    size = 1.45
+  ) +
+  geom_smooth(
+    aes(x = Age, y = Height, color = Region),
+    method = "gam",
+    formula = y ~ s(x, bs = "cs"),
+    se = FALSE,
+    linewidth = 1.25
+  ) +
+  scale_color_manual(
+    values = c(
+      "Selected Europe (12 Countries)" = "#a855f7",
+      "United States (USA)" = "#fbbf24"
+    )
+  ) +
+  scale_x_continuous(breaks = seq(15, 65, by = 5)) +
+  scale_y_continuous(breaks = seq(140, 225, by = 10)) +
+  labs(
+    title = "Age vs. Height of Olympic Medalists: USA vs. Europe (14,553 Individual Observations)",
+    subtitle = "Each point is an individual medalist observation (4,595 USA · 9,958 Selected Europe, 1896–2016)",
+    x = "Athlete Age at the Olympics (Years)",
+    y = "Athlete Height (cm)",
+    color = "Region / Group"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.background = element_rect(fill = "#151c33", color = NA),
+    panel.background = element_rect(fill = "#151c33", color = NA),
+    panel.grid.major = element_line(color = "#2a3558"),
+    panel.grid.minor = element_blank(),
+    text = element_text(color = "#f8fafc"),
+    axis.text = element_text(color = "#cbd5e1"),
+    legend.position = "top"
+  )
+
+# Render with WebGL so all 14,553 individual points remain fast and responsive
+ggplotly(p_scatter, tooltip = "text") |>
+  toWebGL() |>
+  layout(
+    paper_bgcolor = "#151c33",
+    plot_bgcolor = "#151c33",
+    font = list(color = "#f8fafc"),
+    legend = list(orientation = "h", x = 0.05, y = 1.11)
+  )
+```
+
+::: {.note-callout}
+**What Do These `14,553` Individual Observations Reveal?**
+
+1. **Exact Observation Count:** A total of **14,553 individual medal-winning athlete observations** with complete `Age` and `Height` records are plotted directly above (**4,595** from the **United States** and **9,958** from the **12 selected European countries**).
+2. **American Medalists Are Slightly Younger and Taller on Average:** Across all plotted observations, U.S. medalists have a younger average age (**24.6 years**, median **24**) and taller average height (**180.0 cm**, median **180 cm**) compared to European medalists (**26.6 years**, median **26**; **178.0 cm**, median **178 cm**). This reflects strong U.S. collegiate (`NCAA`) participation in sports like **Swimming**, **Athletics**, and **Basketball**.
+3. **Age & Height Span Across Sports:** The cloud of points spans from young teenage medalists in **Gymnastics**, **Diving**, and **Swimming** (ages 13–17, often 140–165 cm) to tall medalists above **205 cm** in **Basketball** and **Rowing**, as well as veteran medalists competing into their 40s, 50s, and 60s in **Equestrianism**, **Sailing**, **Shooting**, and **Fencing**.
+:::
+:::
+
+---
+
+## Summary of Plotted Athlete Observations by Region and Sex
+
+::: {.dashboard-card}
+To complement the interactive scatterplot above, the table below summarizes the **14,553 plotted medalist observations** (as well as all **17,507** total medalist rows including early historical Games where height was not recorded) by **Region** and **Sex** (`F` vs. `M`):
+
+```{r}
+#| label: age-height-sex-summary
+
+# Summarize the 14,553 plotted medal-winning observations by Region and Sex
+medalists_individual |>
+  group_by(Region, Sex) |>
+  summarise(
+    Plotted_Observations = format(n(), big.mark = ","),
+    Mean_Age = round(mean(Age, na.rm = TRUE), 1),
+    Median_Age = median(Age, na.rm = TRUE),
+    Mean_Height_cm = round(mean(Height, na.rm = TRUE), 1),
+    Median_Height_cm = median(Height, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  knitr::kable(
+    col.names = c(
+      "Region",
+      "Sex",
+      "Plotted Observations (n = 14,553)",
+      "Average Age (yrs)",
+      "Median Age (yrs)",
+      "Average Height (cm)",
+      "Median Height (cm)"
+    ),
+    caption = "Summary of the 14,553 Individual Medalist Observations Plotted on the Homepage (1896–2016)"
+  )
+```
+:::

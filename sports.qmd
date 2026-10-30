@@ -1,0 +1,288 @@
+---
+title: "Olympic Comparisons by Sport"
+subtitle: "Which Sports Do the United States, Europe, and Spain Dominate? (1896–2016)"
+author: "Emma Acedo Lapieza"
+date: today
+---
+
+```{r}
+#| label: setup-sports
+
+library(tidyverse)
+library(plotly)
+
+# Load the Kaggle Olympic dataset (271,116 rows and 15 columns)
+olympics <- read_csv("data/athlete_events.csv", show_col_types = FALSE)
+
+# Define our consistent group of 12 major European Olympic countries (including Spain)
+euro_nocs <- c(
+  "ESP", # Spain
+  "GBR", # Great Britain
+  "FRA", # France
+  "GER", # Germany
+  "ITA", # Italy
+  "SWE", # Sweden
+  "NOR", # Norway
+  "NED", # Netherlands
+  "HUN", # Hungary
+  "FIN", # Finland
+  "SUI", # Switzerland
+  "POL"  # Poland
+)
+
+# Count only one medal per unique event and country so team sports are not overcounted
+medals_unique <- olympics |>
+  filter(!is.na(Medal)) |>
+  distinct(Year, Season, Games, Sport, Event, NOC, Medal)
+```
+
+```{=html}
+<div class="kpi-grid">
+  <div class="kpi-box">
+    <div class="kpi-value">816 vs. 822</div>
+    <div class="kpi-label">Athletics (USA vs. 12 Euro)</div>
+  </div>
+  <div class="kpi-box pink">
+    <div class="kpi-value">550 vs. 411</div>
+    <div class="kpi-label">Swimming (USA Leads All 12!)</div>
+  </div>
+  <div class="kpi-box purple">
+    <div class="kpi-value">424 vs. 32</div>
+    <div class="kpi-label">Fencing (Europe Leads)</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-value">19 Medals</div>
+    <div class="kpi-label">Spain's #1 Sport (Sailing)</div>
+  </div>
+</div>
+```
+
+## 1. Top 10 Olympic Sports: USA vs. Selected European Countries
+
+::: {.dashboard-card}
+Which sports drive the overall medal totals between the United States and Europe? The interactive chart below shows the **top 10 medal-winning sports** across the USA and our 12 selected European countries from **1896 to 2016**.
+
+Even when compared against 12 European countries combined, the **United States actually leads in Swimming (`550` vs. `411`)** and is nearly tied in **Athletics (`816` vs. `822`)**! Meanwhile, the selected European nations have a large collective advantage in **Fencing (`424` vs. `32`)**, **Cycling (`423` vs. `57`)**, **Canoeing (`329` vs. `16`)**, **Rowing (`314` vs. `89`)**, and **Cross Country Skiing (`299` vs. `1`)**.
+
+```{r}
+#| label: chart-sports-top10
+#| fig-height: 6
+
+# Find the top 10 sports overall by unique event medals among USA + 12 European countries
+top_10_sports <- medals_unique |>
+  filter(NOC %in% c("USA", euro_nocs)) |>
+  count(Sport, sort = TRUE) |>
+  slice_head(n = 10) |>
+  pull(Sport)
+
+# Count medals by Sport and Region for those top 10 sports
+sports_comparison <- medals_unique |>
+  filter(NOC %in% c("USA", euro_nocs), Sport %in% top_10_sports) |>
+  mutate(
+    Group = if_else(
+      NOC == "USA",
+      "United States (USA)",
+      "Selected Europe (12 Countries)"
+    )
+  ) |>
+  count(Sport, Group, name = "Medals") |>
+  mutate(Sport = fct_reorder(Sport, Medals, .fun = sum))
+
+# Build horizontal grouped bar chart
+p_top_sports <- ggplot(sports_comparison, aes(x = Sport, y = Medals, fill = Group)) +
+  geom_col(position = "dodge", width = 0.72) +
+  coord_flip() +
+  scale_fill_manual(
+    values = c(
+      "Selected Europe (12 Countries)" = "#ec4899",
+      "United States (USA)" = "#fbbf24"
+    )
+  ) +
+  labs(
+    title = "Top 10 Olympic Sports: USA vs. 12 European Countries (1896–2016)",
+    subtitle = "Unique event medals won in the most contested Olympic sports",
+    x = "Olympic Sport",
+    y = "Unique Event Medals Won",
+    fill = "Region / Group"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.background = element_rect(fill = "#151c33", color = NA),
+    panel.background = element_rect(fill = "#151c33", color = NA),
+    panel.grid.major = element_line(color = "#2a3558"),
+    panel.grid.minor = element_blank(),
+    text = element_text(color = "#f8fafc"),
+    axis.text = element_text(color = "#cbd5e1"),
+    legend.position = "top"
+  )
+
+ggplotly(p_top_sports, tooltip = c("x", "y", "fill")) |>
+  layout(
+    paper_bgcolor = "#151c33",
+    plot_bgcolor = "#151c33",
+    font = list(color = "#f8fafc"),
+    legend = list(orientation = "h", x = 0.05, y = 1.12)
+  )
+```
+:::
+
+---
+
+## 2. Spain's Top 10 Medal-Winning Olympic Sports (1900–2016)
+
+::: {.dashboard-card}
+Focusing specifically on **Spain (`ESP`)**, which sports have delivered the most Olympic success? Across Spain's **150 unique event medals**, water and endurance/racquet sports lead the way:
+
+- **Sailing (`19` medals: 13 Gold, 5 Silver, 1 Bronze)** is Spain's single most successful Olympic sport, accounting for more than a quarter of Spain's `45` all-time Gold medals.
+- **Canoeing (`16` medals)**, **Cycling (`15` medals)**, **Athletics (`14` medals)**, and **Tennis (`12` medals)** round out Spain's top five sports.
+
+```{r}
+#| label: chart-spain-top-sports
+#| fig-height: 5.5
+
+# Find Spain's top 10 sports by total unique event medals
+spain_top10_names <- medals_unique |>
+  filter(NOC == "ESP") |>
+  count(Sport, sort = TRUE) |>
+  slice_head(n = 10) |>
+  pull(Sport)
+
+spain_sports_medals <- medals_unique |>
+  filter(NOC == "ESP", Sport %in% spain_top10_names) |>
+  mutate(Medal = factor(Medal, levels = c("Gold", "Silver", "Bronze"))) |>
+  count(Sport, Medal, name = "Medals") |>
+  mutate(Sport = fct_reorder(Sport, Medals, .fun = sum))
+
+p_spain_sports <- ggplot(spain_sports_medals, aes(x = Sport, y = Medals, fill = Medal)) +
+  geom_col(width = 0.7) +
+  coord_flip() +
+  scale_fill_manual(
+    values = c(
+      "Gold" = "#fbbf24",
+      "Silver" = "#cbd5e1",
+      "Bronze" = "#ec4899"
+    )
+  ) +
+  labs(
+    title = "Spain's Top 10 Olympic Sports by Medal Type (1900–2016)",
+    subtitle = "Sailing (19), Canoeing (16), Cycling (15), Athletics (14), and Tennis (12) lead Spain's medal table",
+    x = "Olympic Sport",
+    y = "Unique Event Medals Won by Spain",
+    fill = "Medal Type"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.background = element_rect(fill = "#151c33", color = NA),
+    panel.background = element_rect(fill = "#151c33", color = NA),
+    panel.grid.major = element_line(color = "#2a3558"),
+    panel.grid.minor = element_blank(),
+    text = element_text(color = "#f8fafc"),
+    axis.text = element_text(color = "#cbd5e1"),
+    legend.position = "top"
+  )
+
+ggplotly(p_spain_sports, tooltip = c("x", "y", "fill")) |>
+  layout(
+    paper_bgcolor = "#151c33",
+    plot_bgcolor = "#151c33",
+    font = list(color = "#f8fafc"),
+    legend = list(orientation = "h", x = 0.25, y = 1.12)
+  )
+```
+:::
+
+---
+
+## 3. Athlete Age & Height Profiles by Sport (Connecting Physical Profiles to Sports)
+
+::: {.dashboard-card}
+On the [Home page](index.html), we plotted **14,553 individual medal-winning athlete observations** by age and height. Why do those points spread across such a wide range of ages and heights?
+
+The interactive chart below compares the **average age and average height of medalists** in the **12 most common Olympic sports** (separately for the United States and Selected Europe), where bubble size reflects the number of medalist observations:
+
+- **Gymnastics (`162–168 cm`, ages `20–24`)** and **Swimming (`179–181 cm`, ages `20–22`)** feature some of the youngest medalists.
+- **Basketball (`192–196 cm`)** and **Rowing (`185–186 cm`)** feature the tallest Olympic medalists.
+- **Equestrianism (`ages 34–38`)**, **Sailing (`ages 29–32`)**, and **Shooting (`ages 31–35`)** reward years of technical experience, producing the oldest average medalists.
+
+```{r}
+#| label: chart-sport-physical-profiles
+#| fig-height: 5.8
+
+# Compute sport-level average Age and Height across the top 12 sports by medalist count
+top_12_medalist_sports <- olympics |>
+  filter(NOC %in% c("USA", euro_nocs), !is.na(Medal), !is.na(Age), !is.na(Height)) |>
+  count(Sport, sort = TRUE) |>
+  slice_head(n = 12) |>
+  pull(Sport)
+
+sport_profiles <- olympics |>
+  filter(
+    NOC %in% c("USA", euro_nocs),
+    !is.na(Medal),
+    !is.na(Age),
+    !is.na(Height),
+    Sport %in% top_12_medalist_sports
+  ) |>
+  mutate(
+    Region = if_else(
+      NOC == "USA",
+      "United States (USA)",
+      "Selected Europe (12 Countries)"
+    )
+  ) |>
+  group_by(Sport, Region) |>
+  summarise(
+    Medalist_Count = n(),
+    Mean_Age = round(mean(Age), 1),
+    Mean_Height = round(mean(Height), 1),
+    .groups = "drop"
+  ) |>
+  mutate(
+    Hover_Text = paste0(
+      "<b>", Sport, "</b><br>",
+      "Region: ", Region, "<br>",
+      "Average Age: <b>", Mean_Age, " yrs</b><br>",
+      "Average Height: <b>", Mean_Height, " cm</b><br>",
+      "Medalist Observations: ", format(Medalist_Count, big.mark = ",")
+    )
+  )
+
+p_profiles <- ggplot(
+  sport_profiles,
+  aes(x = Mean_Age, y = Mean_Height, color = Region, size = Medalist_Count, text = Hover_Text)
+) +
+  geom_point(alpha = 0.85) +
+  scale_color_manual(
+    values = c(
+      "Selected Europe (12 Countries)" = "#a855f7",
+      "United States (USA)" = "#fbbf24"
+    )
+  ) +
+  scale_size_continuous(range = c(4, 13), guide = "none") +
+  labs(
+    title = "Average Age vs. Average Height Across 12 Major Olympic Sports",
+    subtitle = "Bubble size indicates number of medalist observations; hover to inspect each sport",
+    x = "Average Medalist Age (Years)",
+    y = "Average Medalist Height (cm)",
+    color = "Region / Group"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.background = element_rect(fill = "#151c33", color = NA),
+    panel.background = element_rect(fill = "#151c33", color = NA),
+    panel.grid.major = element_line(color = "#2a3558"),
+    panel.grid.minor = element_blank(),
+    text = element_text(color = "#f8fafc"),
+    axis.text = element_text(color = "#cbd5e1"),
+    legend.position = "top"
+  )
+
+ggplotly(p_profiles, tooltip = "text") |>
+  layout(
+    paper_bgcolor = "#151c33",
+    plot_bgcolor = "#151c33",
+    font = list(color = "#f8fafc"),
+    legend = list(orientation = "h", x = 0.05, y = 1.12)
+  )
+```
+:::

@@ -1,0 +1,62 @@
+---
+title: "About This Project"
+subtitle: "Author, Project Information, Methodology, and Dataset Attribution"
+author: "Emma Acedo Lapieza"
+date: today
+---
+
+## About the Author
+
+::: {.dashboard-card}
+- **Author:** **Emma Acedo Lapieza**
+- **Project:** Milestone 4 — *Europe vs. America: Who Dominates the Olympics? (1896–2016)*
+- **GitHub Repository:** [`https://github.com/emmaacedoo/milestone-4`](https://github.com/emmaacedoo/milestone-4)
+- **Published Website:** [`https://emmaacedoo.github.io/milestone-4/`](https://emmaacedoo.github.io/milestone-4/)
+
+I created this project because I love sports and wanted to explore 120 years of Olympic history through data science in R and Quarto. Coming from **Spain (`ESP`)**, I was especially curious to see how European nations compare against the United States—both individually and as a combined group—and how the **1992 Barcelona Olympics** transformed Spain's Olympic trajectory.
+:::
+
+---
+
+## Project Overview & Key Findings
+
+::: {.dashboard-card}
+Looking at 120 years of Olympic data from **1896 to 2016**, our multi-page exploration reveals four core takeaways:
+
+1. **Individual Athlete Physical Profiles (`14,553` Plotted Observations on the Homepage):**
+   - On the [Home page](index.html), we plot **14,553 individual medal-winning athlete observations directly** (**4,595** from the United States and **9,958** from the 12 selected European countries) with recorded `Age` and `Height`.
+   - Each point represents a single athlete-event observation, showing that U.S. Olympic medalists are on average slightly younger (**24.6 years** vs. **26.6 years**) and taller (**180.0 cm** vs. **178.0 cm**) than their European counterparts.
+2. **Group vs. Single-Country Medal Dominance ([USA vs. Europe](usa-vs-europe.html)):**
+   - **As a group of 12 countries**, our selected European nations (`ESP`, `GBR`, `FRA`, `GER`, `ITA`, `SWE`, `NOR`, `NED`, `HUN`, `FIN`, `SUI`, `POL`) have won more combined unique event medals (**6,849**) than the United States (**2,823**), because 12 separate nations can enter many more athletes and teams across every event.
+   - **As a single country**, the **United States (`2,823` medals)** is by far the most dominant individual nation in Olympic history, winning nearly triple the medals of the highest-ranking European country in our group, **Germany (`1,004`)**, followed by **Great Britain (`919`)** and **France (`879`)**.
+3. **Sport Specialization ([Sports](sports.html)):**
+   - Even against all 12 European countries combined, the **United States leads in Swimming (`550` vs. `411`)** and is virtually tied in **Athletics (`816` vs. `822`)**, while the 12 European nations hold large collective advantages in **Fencing (`424` vs. `32`)**, **Cycling (`423` vs. `57`)**, **Canoeing (`329` vs. `16`)**, and **Rowing (`314` vs. `89`)**.
+4. **Spain's 1992 Barcelona Turning Point:**
+   - Through 2016, **Spain (`ESP`)** has won **150 unique event medals** (**45 Gold**, **63 Silver**, and **42 Bronze**), led by **Sailing (`19`)**, **Canoeing (`16`)**, **Cycling (`15`)**, **Athletics (`14`)**, and **Tennis (`12`)**. Hosting the **1992 Barcelona Summer Olympics** (`23` total medals in 1992) marked a permanent upward shift in Spanish Olympic performance.
+:::
+
+---
+
+## Dataset Attribution & Reproducibility
+
+::: {.dashboard-card}
+- **Dataset Title:** [**120 Years of Olympic History: Athletes and Results**](https://www.kaggle.com/datasets/heesoo37/120-years-of-olympic-history-athletes-and-results)
+- **Author / Curator:** rgriffin (`heesoo37`) on Kaggle (originally scraped from `www.sports-reference.com` in May 2018)
+- **Scope & Size:** **271,116 rows and 15 columns** covering all Summer and Winter Olympic Games from **Athens 1896 to Rio 2016** (`data/athlete_events.csv` and `data/noc_regions.csv`).
+- **Key Variables Used:**
+  - `ID`, `Name`, `Sex`, `Age`, `Height` (cm), `Weight` (kg)
+  - `Team`, `NOC` (3-letter National Olympic Committee code)
+  - `Games`, `Year`, `Season`, `City`
+  - `Sport`, `Event`, `Medal` (`Gold`, `Silver`, `Bronze`, or `NA`)
+
+### Reproducibility in This Repository
+
+Both raw CSV files (`data/athlete_events.csv` and `data/noc_regions.csv`) are included directly in the `data/` folder of this repository so that cloning the repository and running `quarto render` reproduces the entire website immediately without external dependencies.
+
+If you ever need to download a fresh copy from Kaggle using the Kaggle CLI:
+
+```bash
+mkdir -p data
+kaggle datasets download -d heesoo37/120-years-of-olympic-history-athletes-and-results -p data --unzip
+```
+:::
