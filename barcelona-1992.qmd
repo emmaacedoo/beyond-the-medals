@@ -1,0 +1,231 @@
+---
+title: "Barcelona 1992: Spain's Olympic Turning Point"
+subtitle: "Milestone 6 · Examining Spain's Olympic Medal Performance Before, During, and After 1992"
+author: "Emma Acedo Lapieza"
+date: today
+---
+
+```{r}
+#| label: setup-barcelona-story
+
+library(tidyverse)
+
+# Load the Kaggle Olympic dataset (271,116 rows and 15 columns)
+olympics <- read_csv("data/athlete_events.csv", show_col_types = FALSE)
+
+# Count one medal per unique event and NOC to avoid overcounting team sports
+medals_unique <- olympics |>
+  filter(!is.na(Medal)) |>
+  distinct(Year, Season, Games, Sport, Event, NOC, Medal)
+
+# All Summer Olympic Games in which Spain (ESP) participated (1900–2016)
+spain_summer_games <- olympics |>
+  filter(NOC == "ESP", Season == "Summer") |>
+  distinct(Year, Games, City) |>
+  arrange(Year)
+
+# Count Spain's unique Summer event medals by Olympic year (including 0-medal participations)
+spain_summer_timeline <- spain_summer_games |>
+  left_join(
+    medals_unique |>
+      filter(NOC == "ESP", Season == "Summer") |>
+      group_by(Year) |>
+      summarise(
+        Total_Medals = n(),
+        Gold = sum(Medal == "Gold"),
+        Silver = sum(Medal == "Silver"),
+        Bronze = sum(Medal == "Bronze"),
+        .groups = "drop"
+      ),
+    by = "Year"
+  ) |>
+  mutate(
+    across(c(Total_Medals, Gold, Silver, Bronze), \(x) replace_na(x, 0L)),
+    Era = case_when(
+      Year < 1992 ~ "Before 1992 (1900–1988)",
+      Year == 1992 ~ "Barcelona 1992 (Host Year)",
+      Year > 1992 ~ "After 1992 (1996–2016)"
+    ),
+    Era = factor(
+      Era,
+      levels = c(
+        "Before 1992 (1900–1988)",
+        "Barcelona 1992 (Host Year)",
+        "After 1992 (1996–2016)"
+      )
+    )
+  )
+```
+
+```{=html}
+<div class="kpi-grid">
+  <div class="kpi-box">
+    <div class="kpi-value">1.6 / Games</div>
+    <div class="kpi-label">Before 1992 (26 Summer Medals · 16 Games)</div>
+  </div>
+  <div class="kpi-box pink">
+    <div class="kpi-value">22 Medals</div>
+    <div class="kpi-label">Barcelona 1992 (13 Gold · +1 Winter Bronze)</div>
+  </div>
+  <div class="kpi-box purple">
+    <div class="kpi-value">16.7 / Games</div>
+    <div class="kpi-label">After 1992 (100 Summer Medals · 6 Games)</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-value">150 Total</div>
+    <div class="kpi-label">All-Time Spain Unique Medals (148 Summer · 2 Winter)</div>
+  </div>
+</div>
+```
+
+## Spain Before, During, and After Barcelona 1992
+
+::: {.dashboard-card}
+```{r}
+#| label: fig-barcelona-1992-story
+#| fig-width: 10.5
+#| fig-height: 6.2
+#| fig-dpi: 300
+
+# Fixed narrative chart comparing Spain's Summer Olympic medal totals across eras
+ggplot(spain_summer_timeline, aes(x = Year, y = Total_Medals, fill = Era)) +
+  # Shaded era background for the post-1992 era
+  annotate(
+    "rect",
+    xmin = 1990, xmax = 2018, ymin = 0, ymax = 27.5,
+    fill = "#a855f7", alpha = 0.08
+  ) +
+  # Pre-1992 average line (1.63 medals per Summer Games)
+  annotate(
+    "segment",
+    x = 1898, xend = 1989.5, y = 26 / 16, yend = 26 / 16,
+    color = "#cbd5e1", linetype = "dashed", linewidth = 0.85
+  ) +
+  annotate(
+    "text",
+    x = 1940, y = 4.3,
+    label = "Pre-1992 Mean: 1.6 medals / Summer Games\n(26 total across 16 Summer Games)",
+    color = "#cbd5e1", size = 3.4, fontface = "italic"
+  ) +
+  # Barcelona 1992 annotation placed in open space to the left with a pointer segment
+  annotate(
+    "segment",
+    x = 1977, xend = 1990.3, y = 23.2, yend = 22.0,
+    color = "#f472b6", linewidth = 0.75
+  ) +
+  annotate(
+    "text",
+    x = 1956, y = 23.4,
+    label = "Barcelona 1992: 22 Summer Medals (13 Gold)\n+ 1 Winter Bronze = 23 Total in 1992",
+    color = "#f472b6", size = 3.5, fontface = "bold"
+  ) +
+  # Post-1992 average line (16.67 medals per Summer Games)
+  annotate(
+    "segment",
+    x = 1994.5, xend = 2017.5, y = 100 / 6, yend = 100 / 6,
+    color = "#fbbf24", linetype = "dashed", linewidth = 0.95
+  ) +
+  annotate(
+    "text",
+    x = 2006, y = 25.3,
+    label = "Post-1992 Mean: 16.7 medals / Games\n(100 total across 1996–2016)",
+    color = "#fbbf24", size = 3.45, fontface = "bold"
+  ) +
+  geom_col(width = 2.7, color = "#0b1021", linewidth = 0.3) +
+  geom_text(
+    aes(label = if_else(Total_Medals > 0, as.character(Total_Medals), "")),
+    vjust = -0.45,
+    color = "#f8fafc",
+    fontface = "bold",
+    size = 3.35
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Before 1992 (1900–1988)" = "#64748b",
+      "Barcelona 1992 (Host Year)" = "#ec4899",
+      "After 1992 (1996–2016)" = "#a855f7"
+    )
+  ) +
+  scale_x_continuous(breaks = seq(1900, 2016, by = 8)) +
+  scale_y_continuous(limits = c(0, 28), breaks = seq(0, 24, by = 4)) +
+  labs(
+    title = "Spain's Summer Olympic Medal Totals Before, During, and After Barcelona 1992",
+    subtitle = "Unique Summer Olympic event medals won by Spain (ESP) across all 23 Summer participations (1900–2016)",
+    x = "Summer Olympic Year",
+    y = "Unique Summer Event Medals Won",
+    fill = "Olympic Era",
+    caption = "Source: 120 Years of Olympic History (Kaggle). Counts deduplicated by unique event; Spain also won 2 Winter medals (1972 Gold, 1992 Bronze)."
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.background = element_rect(fill = "#151c33", color = NA),
+    panel.background = element_rect(fill = "#151c33", color = NA),
+    panel.grid.major = element_line(color = "#2a3558"),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(color = "#fbbf24", face = "bold", size = 15),
+    plot.subtitle = element_text(color = "#cbd5e1", size = 11.5),
+    plot.caption = element_text(color = "#94a3b8", size = 9.5),
+    text = element_text(color = "#f8fafc"),
+    axis.text = element_text(color = "#cbd5e1"),
+    legend.position = "top"
+  )
+```
+
+For nearly a century before 1992, Spain played a modest role in the Olympic Games. Counting unique event medals so that team sports are never overcounted, Spain won just **27 total medals across 92 years (`1900–1988`)**—**26 in the Summer Games** (`5 Gold`, `12 Silver`, and `9 Bronze` across 16 Summer Olympic appearances) plus a single Winter Gold in `1972`. Throughout that entire pre-1992 era, Spain averaged only **1.63 Summer medals per Games**, went completely medal-less in multiple Summer appearances (`1924`, `1964`, `1968`), and never exceeded the `6` medals won at the boycotted `1980` Moscow Olympics.
+
+A dramatic jump occurred when Barcelona hosted the **1992 Summer Olympics**. In **Barcelona 1992**, Spain captured **22 unique Summer event medals (`13 Gold`, `7 Silver`, `2 Bronze`)**—plus **1 Winter Bronze** in Albertville for **23 total medals in 1992**. In a single Summer Games on home soil, Spanish athletes won more than **twice as many Gold medals (`13`)** as Spain had won in its entire preceding Olympic history (`6` total Golds from `1900` to `1988`), led by Sailing (`4 Gold, 1 Silver`), Athletics (`4` medals), Cycling (`2 Gold`), Judo (`2 Gold`), and team golds in Men's Football and Women's Field Hockey. Ahead of the Games, Spain had also introduced **Plan ADO (*Asociación Deportes Olímpicos*)** in 1988 to expand training centers, coaching, and athlete scholarships alongside host-country preparations.
+
+Following 1992, Spain's Olympic medal results remained substantially higher than in the pre-1992 era. Across the **six Summer Olympic Games after Barcelona (`1996–2016`)**, Spain won **100 unique event medals (`26 Gold`, `44 Silver`, `30 Bronze`)**, averaging **16.7 medals per Summer Games**—more than **ten times** its pre-1992 average (`1.63`)—and finishing between `11` and `20` medals at every Summer Games (`82%` of Spain's `150` all-time medals were won in 1992 or later). While this timeline clearly shows that Spain's Olympic results rose sharply in 1992 and stayed elevated afterward, the medal data alone is observational and cannot prove what caused that sustained improvement—which likely reflects a combination of long-term sports funding, new facilities, growing youth participation, broader economic growth in Spain, and the expansion of Olympic events over time.
+:::
+
+---
+
+## Summary Table: Spain's Olympic Medal Performance by Era (1900–2016)
+
+::: {.dashboard-card}
+The table below compares Spain's unique event medal totals across all three eras (showing both Summer-only totals and combined Summer + Winter totals):
+
+```{r}
+#| label: table-barcelona-eras
+
+medals_unique |>
+  filter(NOC == "ESP") |>
+  mutate(
+    Era = case_when(
+      Year < 1992 ~ "1. Before 1992 (1900–1988)",
+      Year == 1992 ~ "2. Barcelona 1992 (Host Year)",
+      Year > 1992 ~ "3. After 1992 (1996–2016)"
+    )
+  ) |>
+  group_by(Era) |>
+  summarise(
+    Summer_Games_Played = case_when(
+      first(Era) == "1. Before 1992 (1900–1988)" ~ 16L,
+      first(Era) == "2. Barcelona 1992 (Host Year)" ~ 1L,
+      TRUE ~ 6L
+    ),
+    Total_Unique_Medals = n(),
+    Summer_Medals = sum(Season == "Summer"),
+    Winter_Medals = sum(Season == "Winter"),
+    Gold = sum(Medal == "Gold"),
+    Silver = sum(Medal == "Silver"),
+    Bronze = sum(Medal == "Bronze"),
+    Summer_Medals_Per_Games = round(sum(Season == "Summer") / first(Summer_Games_Played), 1),
+    .groups = "drop"
+  ) |>
+  knitr::kable(
+    col.names = c(
+      "Olympic Era",
+      "Summer Games Contested",
+      "Total Unique Medals",
+      "Summer Medals",
+      "Winter Medals",
+      "Gold",
+      "Silver",
+      "Bronze",
+      "Summer Medals / Games"
+    ),
+    caption = "Spain's Unique Event Medal Performance Before, During, and After the 1992 Barcelona Games"
+  )
+```
+:::

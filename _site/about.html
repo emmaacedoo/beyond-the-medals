@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Emma Acedo Lapieza">
-<meta name="dcterms.date" content="2026-10-30">
+<meta name="dcterms.date" content="2026-11-10">
 
 <title>About This Project – Europe vs.&nbsp;America: Olympic History</title>
 <style>
@@ -110,6 +110,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -144,13 +173,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text">Sports</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./money-and-medals.html"> 
+<span class="menu-text">Money &amp; Medals</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./barcelona-1992.html"> 
+<span class="menu-text">Barcelona 1992</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link active" href="./about.html" aria-current="page"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
-    <a class="nav-link" href="https://github.com/emmaacedoo/milestone-4"> <i class="bi bi-github" role="img" aria-label="GitHub Repository">
+    <a class="nav-link" href="https://github.com/emmaacedoo/beyond-the-medals"> <i class="bi bi-github" role="img" aria-label="GitHub Repository">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
@@ -182,7 +219,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">About This Project</h1>
-<p class="subtitle lead">Author, Project Information, Methodology, and Dataset Attribution</p>
+<p class="subtitle lead">Milestone 6 · Author, Project Information, Methodology, and Dataset Attribution</p>
 </div>
 
 
@@ -199,7 +236,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 30, 2026</p>
+      <p class="date">November 10, 2026</p>
     </div>
   </div>
   
@@ -216,18 +253,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="dashboard-card">
 <ul>
 <li><strong>Author:</strong> <strong>Emma Acedo Lapieza</strong></li>
-<li><strong>Project:</strong> Milestone 4 — <em>Europe vs.&nbsp;America: Who Dominates the Olympics? (1896–2016)</em></li>
-<li><strong>GitHub Repository:</strong> <a href="https://github.com/emmaacedoo/milestone-4"><code>https://github.com/emmaacedoo/milestone-4</code></a></li>
-<li><strong>Published Website:</strong> <a href="https://emmaacedoo.github.io/milestone-4/"><code>https://emmaacedoo.github.io/milestone-4/</code></a></li>
+<li><strong>Project:</strong> Milestone 6 — <em>Europe vs.&nbsp;America: Who Dominates the Olympics? (1896–2016)</em></li>
+<li><strong>GitHub Repository:</strong> <a href="https://github.com/emmaacedoo/beyond-the-medals"><code>https://github.com/emmaacedoo/beyond-the-medals</code></a></li>
+<li><strong>Published Website:</strong> <a href="https://emmaacedoo.github.io/beyond-the-medals/"><code>https://emmaacedoo.github.io/beyond-the-medals/</code></a></li>
 </ul>
-<p>I created this project because I love sports and wanted to explore 120 years of Olympic history through data science in R and Quarto. Coming from <strong>Spain (<code>ESP</code>)</strong>, I was especially curious to see how European nations compare against the United States—both individually and as a combined group—and how the <strong>1992 Barcelona Olympics</strong> transformed Spain’s Olympic trajectory.</p>
+<p>I created this project because I love sports and wanted to explore 120 years of Olympic history through data science in R and Quarto. Coming from <strong>Spain (<code>ESP</code>)</strong>, I was especially curious to see how European nations compare against the United States—both individually and as a combined group—how national GDP relates to Olympic medal counts, and how Spain’s Olympic medal performance changed during and after the <strong>1992 Barcelona Olympics</strong>.</p>
 </div>
 <hr>
 </section>
 <section id="project-overview-key-findings" class="level2">
 <h2 class="anchored" data-anchor-id="project-overview-key-findings">Project Overview &amp; Key Findings</h2>
 <div class="dashboard-card">
-<p>Looking at 120 years of Olympic data from <strong>1896 to 2016</strong>, our multi-page exploration reveals four core takeaways:</p>
+<p>Looking at 120 years of Olympic data from <strong>1896 to 2016</strong>, our multi-page exploration reveals five core takeaways:</p>
 <ol type="1">
 <li><strong>Individual Athlete Physical Profiles (<code>14,553</code> Plotted Observations on the Homepage):</strong>
 <ul>
@@ -243,9 +280,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li>Even against all 12 European countries combined, the <strong>United States leads in Swimming (<code>550</code> vs.&nbsp;<code>411</code>)</strong> and is virtually tied in <strong>Athletics (<code>816</code> vs.&nbsp;<code>822</code>)</strong>, while the 12 European nations hold large collective advantages in <strong>Fencing (<code>424</code> vs.&nbsp;<code>32</code>)</strong>, <strong>Cycling (<code>423</code> vs.&nbsp;<code>57</code>)</strong>, <strong>Canoeing (<code>329</code> vs.&nbsp;<code>16</code>)</strong>, and <strong>Rowing (<code>314</code> vs.&nbsp;<code>89</code>)</strong>.</li>
 </ul></li>
-<li><strong>Spain’s 1992 Barcelona Turning Point:</strong>
+<li><strong>Does Money Buy Olympic Success? (<a href="money-and-medals.html">Money &amp; Medals</a>):</strong>
 <ul>
-<li>Through 2016, <strong>Spain (<code>ESP</code>)</strong> has won <strong>150 unique event medals</strong> (<strong>45 Gold</strong>, <strong>63 Silver</strong>, and <strong>42 Bronze</strong>), led by <strong>Sailing (<code>19</code>)</strong>, <strong>Canoeing (<code>16</code>)</strong>, <strong>Cycling (<code>15</code>)</strong>, <strong>Athletics (<code>14</code>)</strong>, and <strong>Tennis (<code>12</code>)</strong>. Hosting the <strong>1992 Barcelona Summer Olympics</strong> (<code>23</code> total medals in 1992) marked a permanent upward shift in Spanish Olympic performance.</li>
+<li>Combining World Bank GDP (<code>NY.GDP.MKTP.CD</code>, 1960–2016) with verified Olympic country codes shows a strong positive correlation between log-GDP and log-medals (<span class="math inline">\(r = 0.72\)</span> in Rio 2016), while also demonstrating why GDP is not direct sports funding and why correlation does not prove causation.</li>
+</ul></li>
+<li><strong>Spain’s 1992 Barcelona Turning Point (<a href="barcelona-1992.html">Barcelona 1992</a>):</strong>
+<ul>
+<li>Through 2016, <strong>Spain (<code>ESP</code>)</strong> has won <strong>150 unique event medals</strong> (<strong>45 Gold</strong>, <strong>63 Silver</strong>, and <strong>42 Bronze</strong>), led by <strong>Sailing (<code>19</code>)</strong>, <strong>Canoeing (<code>16</code>)</strong>, <strong>Cycling (<code>15</code>)</strong>, <strong>Athletics (<code>14</code>)</strong>, and <strong>Tennis (<code>12</code>)</strong>. Spain’s Summer Olympic results jumped from an average of <strong>1.6 medals per Games</strong> before 1992 (<code>26</code> Summer medals across <code>16</code> Games) to <strong>22 Summer medals (<code>13 Gold</code>)</strong> at the <strong>1992 Barcelona Summer Olympics</strong>, and remained elevated at <strong>16.7 medals per Games</strong> from <code>1996</code> to <code>2016</code>.</li>
 </ul></li>
 </ol>
 </div>
@@ -255,20 +296,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="dataset-attribution-reproducibility">Dataset Attribution &amp; Reproducibility</h2>
 <div class="dashboard-card">
 <ul>
-<li><strong>Dataset Title:</strong> <a href="https://www.kaggle.com/datasets/heesoo37/120-years-of-olympic-history-athletes-and-results"><strong>120 Years of Olympic History: Athletes and Results</strong></a></li>
+<li><strong>Dataset 1 (Olympic Athletes &amp; Results):</strong> <a href="https://www.kaggle.com/datasets/heesoo37/120-years-of-olympic-history-athletes-and-results"><strong>120 Years of Olympic History: Athletes and Results</strong></a>
+<ul>
 <li><strong>Author / Curator:</strong> rgriffin (<code>heesoo37</code>) on Kaggle (originally scraped from <code>www.sports-reference.com</code> in May 2018)</li>
 <li><strong>Scope &amp; Size:</strong> <strong>271,116 rows and 15 columns</strong> covering all Summer and Winter Olympic Games from <strong>Athens 1896 to Rio 2016</strong> (<code>data/athlete_events.csv</code> and <code>data/noc_regions.csv</code>).</li>
+</ul></li>
+<li><strong>Dataset 2 (National GDP):</strong> <a href="https://data.worldbank.org/indicator/NY.GDP.MKTP.CD"><strong>World Bank World Development Indicators — GDP (current US$, <code>NY.GDP.MKTP.CD</code>)</strong></a>
+<ul>
+<li><strong>Scope &amp; Size:</strong> Annual national GDP in current US dollars (<code>1960–2016</code>), stored locally in <code>data/world_bank_gdp.csv</code> and automatically retrievable via the official World Bank REST API (<code>https://api.worldbank.org/v2/country/all/indicator/NY.GDP.MKTP.CD</code>).</li>
+</ul></li>
 <li><strong>Key Variables Used:</strong>
 <ul>
 <li><code>ID</code>, <code>Name</code>, <code>Sex</code>, <code>Age</code>, <code>Height</code> (cm), <code>Weight</code> (kg)</li>
-<li><code>Team</code>, <code>NOC</code> (3-letter National Olympic Committee code)</li>
+<li><code>Team</code>, <code>NOC</code> (3-letter National Olympic Committee code), <code>iso3c</code> (ISO-3166 alpha-3 code)</li>
 <li><code>Games</code>, <code>Year</code>, <code>Season</code>, <code>City</code></li>
-<li><code>Sport</code>, <code>Event</code>, <code>Medal</code> (<code>Gold</code>, <code>Silver</code>, <code>Bronze</code>, or <code>NA</code>)</li>
+<li><code>Sport</code>, <code>Event</code>, <code>Medal</code> (<code>Gold</code>, <code>Silver</code>, <code>Bronze</code>, or <code>NA</code>), <code>gdp_usd</code> (World Bank GDP in current US$)</li>
 </ul></li>
 </ul>
 <section id="reproducibility-in-this-repository" class="level3">
 <h3 class="anchored" data-anchor-id="reproducibility-in-this-repository">Reproducibility in This Repository</h3>
-<p>Both raw CSV files (<code>data/athlete_events.csv</code> and <code>data/noc_regions.csv</code>) are included directly in the <code>data/</code> folder of this repository so that cloning the repository and running <code>quarto render</code> reproduces the entire website immediately without external dependencies.</p>
+<p>All three CSV files (<code>data/athlete_events.csv</code>, <code>data/noc_regions.csv</code>, and <code>data/world_bank_gdp.csv</code>) are included directly in the <code>data/</code> folder of this repository so that cloning the repository and running <code>quarto render</code> reproduces the entire website immediately without external dependencies.</p>
 <p>If you ever need to download a fresh copy from Kaggle using the Kaggle CLI:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> data</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">kaggle</span> datasets download <span class="at">-d</span> heesoo37/120-years-of-olympic-history-athletes-and-results <span class="at">-p</span> data <span class="at">--unzip</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -683,13 +730,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <footer class="footer">
   <div class="nav-footer">
     <div class="nav-footer-left">
-<p>Created by Emma Acedo Lapieza · Milestone 4</p>
+<p>Created by Emma Acedo Lapieza · Milestone 6</p>
 </div>   
     <div class="nav-footer-center">
       &nbsp;
     </div>
     <div class="nav-footer-right">
-<p>Data: 120 Years of Olympic History (1896–2016) · Kaggle</p>
+<p>Data: 120 Years of Olympic History (1896–2016) &amp; World Bank GDP</p>
 </div>
   </div>
 </footer>

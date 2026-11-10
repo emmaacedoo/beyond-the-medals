@@ -1,0 +1,371 @@
+---
+title: "Does Money Buy Olympic Success?"
+subtitle: "Milestone 6 · Exploring World Bank GDP (NY.GDP.MKTP.CD) and Unique Olympic Event Medals (1960–2016)"
+author: "Emma Acedo Lapieza"
+date: today
+---
+
+```{r}
+#| label: setup-money-medals
+
+library(tidyverse)
+library(plotly)
+library(countrycode)
+library(jsonlite)
+
+# 1. Load the Olympic dataset (1896–2016)
+olympics <- read_csv("data/athlete_events.csv", show_col_types = FALSE)
+
+# 2. Load real World Bank GDP data (indicator NY.GDP.MKTP.CD, current US$, 1960–2016)
+# Fetches directly from the World Bank REST API if the local CSV cache is not present
+wb_cache_path <- "data/world_bank_gdp.csv"
+if (!file.exists(wb_cache_path)) {
+  wb_url <- "https://api.worldbank.org/v2/country/all/indicator/NY.GDP.MKTP.CD?date=1960:2016&format=json&per_page=20000"
+  wb_raw <- fromJSON(wb_url)
+  wb_gdp <- as_tibble(wb_raw[[2]]) |>
+    transmute(
+      iso3c = countryiso3code,
+      country_wb = country$value,
+      Year = as.integer(date),
+      gdp_usd = as.numeric(value)
+    ) |>
+    filter(!is.na(iso3c), nchar(iso3c) == 3, !is.na(gdp_usd)) |>
+    arrange(iso3c, Year)
+  write_csv(wb_gdp, wb_cache_path)
+} else {
+  wb_gdp <- read_csv(wb_cache_path, show_col_types = FALSE)
+}
+
+# Define our consistent 12 selected European countries from the rest of the website
+euro_nocs <- c(
+  "ESP", "GBR", "FRA", "GER", "ITA", "SWE",
+  "NOR", "NED", "HUN", "FIN", "SUI", "POL"
+)
+
+# Historical, dissolved, or multi-state Olympic NOCs that cannot be mapped 1-to-1
+# to a single modern sovereign country's World Bank GDP series
+excluded_historical_nocs <- c(
+  "URS", # Soviet Union
+  "GDR", # East Germany
+  "FRG", # West Germany
+  "EUN", # Unified Team (1992 post-Soviet republics)
+  "TCH", # Czechoslovakia
+  "YUG", # Yugoslavia
+  "SCG", # Serbia and Montenegro
+  "UAR", # United Arab Republic
+  "WIF", # West Indies Federation
+  "AHO", # Netherlands Antilles
+  "IOA", # Individual Olympic Athletes
+  "ROT", # Refugee Olympic Team
+  "EUA", # United Team of Germany
+  "RHO"  # Rhodesia
+)
+
+# Build a verified NOC-to-ISO3 lookup table for Olympic years >= 1960
+noc_iso_lookup <- olympics |>
+  filter(Year >= 1960) |>
+  distinct(NOC) |>
+  mutate(
+    iso3c = case_when(
+      NOC %in% excluded_historical_nocs ~ NA_character_,
+      NOC == "LIB" ~ "LBN", # Lebanon competed under IOC code LIB through 2016
+      NOC == "SIN" ~ "SGP", # Singapore competed under IOC code SIN through 2016
+      NOC == "KOS" ~ "XKX", # Kosovo uses XKX in World Bank data
+      TRUE ~ countrycode(NOC, origin = "ioc", destination = "iso3c", warn = FALSE)
+    )
+  )
+
+# Deduplicate team events so each country receives 1 medal per unique event
+# Restrict to 1960–2016 (years when World Bank NY.GDP.MKTP.CD data is available)
+medals_unique_1960 <- olympics |>
+  filter(!is.na(Medal), Year >= 1960) |>
+  distinct(Year, Season, Games, Sport, Event, NOC, Medal)
+
+# Count unique event medals by NOC and Summer Olympic year (1960–2016)
+# Note: In 1960 and 1964, GER represented the combined United Team of Germany (East + West),
+# so we exclude GER in 1960 and 1964 to avoid mismatching a combined team to single-state GDP.
+summer_medals_by_noc <- medals_unique_1960 |>
+  filter(
+    Season == "Summer",
+    !(NOC == "GER" & Year %in% c(1960, 1964))
+  ) |>
+  group_by(Year, Games, NOC) |>
+  summarise(
+    Total_Medals = n(),
+    Gold = sum(Medal == "Gold"),
+    Silver = sum(Medal == "Silver"),
+    Bronze = sum(Medal == "Bronze"),
+    .groups = "drop"
+  ) |>
+  left_join(noc_iso_lookup, by = "NOC") |>
+  filter(!is.na(iso3c)) |>
+  inner_join(wb_gdp, by = c("iso3c", "Year")) |>
+  mutate(
+    GDP_Billions = gdp_usd / 1e9,
+    Medals_Per_100B_GDP = round(Total_Medals / (gdp_usd / 1e11), 2),
+    Group = case_when(
+      NOC == "USA" ~ "United States (USA)",
+      NOC == "ESP" ~ "Spain (ESP)",
+      NOC %in% euro_nocs ~ "Selected Europe (Other 11 Countries)",
+      TRUE ~ "Rest of World"
+    ),
+    Group = factor(
+      Group,
+      levels = c(
+        "United States (USA)",
+        "Spain (ESP)",
+        "Selected Europe (Other 11 Countries)",
+        "Rest of World"
+      )
+    ),
+    Hover_Text = paste0(
+      "<b>", country_wb, "</b> (NOC: ", NOC, " · ISO3: ", iso3c, ")<br>",
+      "Olympic Games: <b>", Games, "</b><br>",
+      "Region Group: ", Group, "<br>",
+      "World Bank GDP: <b>$", formatC(GDP_Billions, format = "f", digits = 1, big.mark = ","), " Billion</b><br>",
+      "Unique Event Medals: <b>", Total_Medals, "</b> (Gold: ", Gold, " · Silver: ", Silver, " · Bronze: ", Bronze, ")<br>",
+      "Medals per $100B GDP: <b>", Medals_Per_100B_GDP, "</b>"
+    )
+  )
+```
+
+```{=html}
+<div class="kpi-grid">
+  <div class="kpi-box">
+    <div class="kpi-value">1960–2016</div>
+    <div class="kpi-label">World Bank GDP Coverage (15 Summer Games)</div>
+  </div>
+  <div class="kpi-box pink">
+    <div class="kpi-value">855</div>
+    <div class="kpi-label">Verified Country-Year Medal Observations</div>
+  </div>
+  <div class="kpi-box purple">
+    <div class="kpi-value">r = 0.72</div>
+    <div class="kpi-label">Log(GDP) vs. Log(Medals) Correlation (2016)</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-value">121 vs. 17</div>
+    <div class="kpi-label">2016 Medals: USA ($18.7T) vs. Spain ($1.2T)</div>
+  </div>
+</div>
+```
+
+## 1. Interactive Exploration: GDP vs. Unique Olympic Event Medals (1960–2016)
+
+::: {.dashboard-card}
+Does the size of a country's economy predict how many Olympic medals it wins? To investigate this question, I combined the Olympic dataset (`data/athlete_events.csv`) with real **World Bank Gross Domestic Product (GDP)** data in current US dollars (indicator **`NY.GDP.MKTP.CD`**). Because World Bank GDP records begin in **1960**, this exploration covers the **15 Summer Olympic Games from Rome 1960 to Rio 2016**.
+
+Use the **Olympic Year dropdown menu** at the top-left of the chart below (or click items in the legend) to explore how the relationship between national GDP and unique Olympic event medals has evolved from **1960 to 2016**:
+
+- **X-Axis (Log Scale):** National GDP in current US dollars (`$100M`, `$1B`, `$10B`, `$100B`, `$1T`, `$10T` · `NY.GDP.MKTP.CD`).
+- **Y-Axis:** Unique Summer Olympic event medals won (`distinct(Year, Season, Games, Sport, Event, NOC, Medal)` so team sports count as one medal per event).
+- **Hover over any country** to inspect its World Bank country name, Olympic `NOC`, `ISO3` code, exact GDP (`$ Billions`), total unique event medals (`Gold`, `Silver`, `Bronze`), and medals per `$100 Billion` of GDP.
+
+```{r}
+#| label: plotly-gdp-medals-by-year
+#| fig-height: 6.5
+
+# Prepare year-by-year traces so readers can switch cleanly across all 15 Summer Olympic years (1960–2016)
+# or view 2016 immediately on load with full interactive hover details
+summer_years <- sort(unique(summer_medals_by_noc$Year))
+default_year <- 2016
+
+group_colors <- c(
+  "United States (USA)" = "#fbbf24",
+  "Spain (ESP)" = "#ec4899",
+  "Selected Europe (Other 11 Countries)" = "#a855f7",
+  "Rest of World" = "#38bdf8"
+)
+
+fig <- plot_ly()
+
+# Add 4 group traces per Olympic year (15 years * 4 groups = 60 traces)
+for (yr in summer_years) {
+  yr_data <- summer_medals_by_noc |> filter(Year == yr)
+  is_vis <- (yr == default_year)
+  
+  for (grp in names(group_colors)) {
+    grp_data <- yr_data |> filter(Group == grp)
+    fig <- fig |>
+      add_trace(
+        data = grp_data,
+        x = ~GDP_Billions,
+        y = ~Total_Medals,
+        type = "scatter",
+        mode = "markers",
+        name = grp,
+        legendgroup = grp,
+        showlegend = is_vis,
+        visible = is_vis,
+        text = ~Hover_Text,
+        hoverinfo = "text",
+        marker = list(
+          size = ~pmax(9, pmin(26, sqrt(Total_Medals) * 2.6)),
+          color = group_colors[[grp]],
+          opacity = 0.88,
+          line = list(color = "#0b1021", width = 1.2)
+        )
+      )
+  }
+}
+
+# Build interactive dropdown items for each Summer Olympic year from 1960 to 2016
+year_dropdown_buttons <- lapply(seq_along(summer_years), \(i) {
+  yr <- summer_years[i]
+  vis_vec <- rep(FALSE, length(summer_years) * 4)
+  idx_start <- (i - 1) * 4 + 1
+  vis_vec[idx_start:(idx_start + 3)] <- TRUE
+  
+  yr_rows <- summer_medals_by_noc |> filter(Year == yr)
+  r_val <- round(cor(log10(yr_rows$GDP_Billions), log10(yr_rows$Total_Medals)), 2)
+  
+  list(
+    method = "update",
+    args = list(
+      list(visible = vis_vec, showlegend = vis_vec),
+      list(
+        title = list(
+          text = paste0(
+            "World Bank GDP vs. Unique Summer Olympic Medals in ", yr,
+            " (Log-Log r = ", r_val, " · ", nrow(yr_rows), " Matched Countries)"
+          ),
+          x = 0.01,
+          y = 0.97,
+          xanchor = "left",
+          font = list(color = "#f8fafc", size = 15)
+        )
+      )
+    ),
+    label = paste0("Summer Olympics: ", yr)
+  )
+})
+
+r_2016 <- round(
+  cor(
+    log10(summer_medals_by_noc$GDP_Billions[summer_medals_by_noc$Year == 2016]),
+    log10(summer_medals_by_noc$Total_Medals[summer_medals_by_noc$Year == 2016])
+  ),
+  2
+)
+n_2016 <- sum(summer_medals_by_noc$Year == 2016)
+
+fig |>
+  layout(
+    title = list(
+      text = paste0(
+        "World Bank GDP vs. Unique Summer Olympic Medals in 2016 (Log-Log r = ",
+        r_2016, " · ", n_2016, " Matched Countries)"
+      ),
+      x = 0.01,
+      y = 0.97,
+      xanchor = "left",
+      font = list(color = "#f8fafc", size = 15)
+    ),
+    xaxis = list(
+      title = "National GDP in Current US Dollars (Log Scale · World Bank NY.GDP.MKTP.CD)",
+      type = "log",
+      tickmode = "array",
+      tickvals = c(0.1, 1, 10, 100, 1000, 10000),
+      ticktext = c("$100M", "$1B", "$10B", "$100B", "$1T", "$10T"),
+      gridcolor = "#2a3558",
+      color = "#cbd5e1",
+      tickfont = list(color = "#cbd5e1")
+    ),
+    yaxis = list(
+      title = "Unique Summer Olympic Event Medals Won",
+      gridcolor = "#2a3558",
+      color = "#cbd5e1",
+      tickfont = list(color = "#cbd5e1")
+    ),
+    paper_bgcolor = "#151c33",
+    plot_bgcolor = "#151c33",
+    font = list(color = "#f8fafc"),
+    legend = list(
+      orientation = "h",
+      x = 0.27,
+      y = 1.13,
+      xanchor = "left",
+      yanchor = "top",
+      font = list(color = "#f8fafc", size = 11.5)
+    ),
+    updatemenus = list(
+      list(
+        type = "dropdown",
+        direction = "down",
+        x = 0.0,
+        y = 1.14,
+        xanchor = "left",
+        yanchor = "top",
+        active = length(summer_years) - 1,
+        bgcolor = "#1d2642",
+        bordercolor = "#a855f7",
+        font = list(color = "#f8fafc", size = 12),
+        buttons = year_dropdown_buttons
+      )
+    ),
+    margin = list(t = 125, r = 30, b = 65, l = 65)
+  )
+```
+:::
+
+---
+
+## 2. Why Country Matching & Limitations Matter: Correlation $\neq$ Causation
+
+::: {.dashboard-card}
+Linking international economic statistics to Olympic records requires careful country matching. Because International Olympic Committee (`NOC`) codes often differ from the World Bank's ISO-3166 alpha-3 (`iso3c`) codes, I mapped each modern `NOC` to its verified `iso3c` code and excluded dissolved or multi-state historical teams that cannot be matched to a single country's modern World Bank GDP series.
+
+Crucially, **GDP is not direct sports investment**. World Bank indicator `NY.GDP.MKTP.CD` measures total national economic output across all goods and services—not athletic budgets, coaching systems, or community facilities. For instance, in **Rio 2016**, **Great Britain (`GBR`, GDP `$2.7T`, `67` medals)** and **India (`IND`, GDP `$2.3T`, `2` medals)** had comparable total GDP, yet very different Olympic outcomes. Neither total GDP nor elite sports funding alone explains this gap; Olympic medal totals reflect a complex mix of historical sporting traditions, grass-roots participation, per-capita income and public infrastructure, and which sports are included on the Olympic program (for example, cricket is India's most popular sport but was not contested in 1960–2016).
+
+Finally, **correlation does not prove causation**. Although log-transformed GDP and log-transformed medal totals correlate strongly in 2016 (**$r = 0.72$** across **84 matched medal-winning countries**), a larger economy does not automatically cause Olympic victories. Total GDP is heavily confounded with population size, living standards, leisure time, and sports infrastructure, while countries such as **Jamaica (`JAM`, `11` medals with `$14.1B` GDP)**, **Kenya (`KEN`, `13` medals with `$74.8B` GDP)**, and **Cuba (`CUB`, `11` medals with `$91.4B` GDP)** regularly win far more medals than their GDP alone would predict through deep cultural specialization.
+
+<details style="margin-top: 1rem; background: rgba(11, 16, 33, 0.55); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 10px; padding: 0.85rem 1.1rem;">
+<summary style="cursor: pointer; font-weight: 600; color: #fbbf24;">Show Detailed NOC-to-ISO3 Country Matching & Excluded Historical Delegations</summary>
+<div style="margin-top: 0.75rem; color: #cbd5e1; font-size: 0.95rem;">
+- **Verified Code Translations:** Olympic NOC codes such as `GER` (Germany), `ESP` (Spain), `NED` (Netherlands), `SUI` (Switzerland), `GRE` (Greece), `POR` (Portugal), `DEN` (Denmark), `CRO` (Croatia), `SLO` (Slovenia), `RSA` (South Africa), `LIB` (Lebanon), `SIN` (Singapore), and `KOS` (Kosovo) are mapped explicitly to their ISO-3166 alpha-3 equivalents (`DEU`, `ESP`, `NLD`, `CHE`, `GRC`, `PRT`, `DNK`, `HRV`, `SVN`, `ZAF`, `LBN`, `SGP`, and `XKX`) using `countrycode` plus verified manual rules for pre-2016 IOC codes.
+- **Excluded Historical & Multi-State Delegations:** To prevent silent mismatches, the following historical or non-sovereign Olympic delegations are excluded rather than forced onto modern single-country GDP series: **Soviet Union (`URS`)**, **East Germany (`GDR`)**, **West Germany (`FRG`)**, **Unified Team (`EUN`, 1992)**, **Czechoslovakia (`TCH`)**, **Yugoslavia (`YUG`)**, **Serbia and Montenegro (`SCG`)**, **United Arab Republic (`UAR`)**, **West Indies Federation (`WIF`)**, **Netherlands Antilles (`AHO`)**, **Individual Olympic Athletes (`IOA`)**, **Refugee Olympic Team (`ROT`)**, and the **1960–1964 United Team of Germany (`GER`)**, when East and West Germany competed together as a single combined delegation.
+</div>
+</details>
+:::
+
+---
+
+## 3. Medals Relative to GDP: Top Medal-Winning Countries in Rio 2016
+
+::: {.dashboard-card}
+To view both **overall economic scale** and **medals relative to GDP** in the most recent Summer Games in our dataset (**Rio 2016**), the table below summarizes the top 15 medal-winning countries with verified World Bank GDP data, including **Spain (`ESP`)**. Note that `Medals per $100B GDP` is simply a descriptive ratio scaling medal counts by total economic size—not a measure of economic efficiency, since larger economies naturally exhibit diminishing returns under Olympic per-country entry caps:
+
+```{r}
+#| label: table-2016-gdp-medals
+
+summer_medals_by_noc |>
+  filter(Year == 2016) |>
+  arrange(desc(Total_Medals), desc(Gold)) |>
+  slice_head(n = 15) |>
+  transmute(
+    Country = paste0(country_wb, " (", NOC, ")"),
+    ISO3 = iso3c,
+    Group = as.character(Group),
+    GDP_2016 = paste0("$", formatC(GDP_Billions, format = "f", digits = 1, big.mark = ","), "B"),
+    Total_Medals = Total_Medals,
+    Gold = Gold,
+    Silver = Silver,
+    Bronze = Bronze,
+    Medals_Per_100B = Medals_Per_100B_GDP
+  ) |>
+  knitr::kable(
+    col.names = c(
+      "Country (NOC)",
+      "ISO3",
+      "Region Group",
+      "2016 GDP (Current US$)",
+      "Unique Medals",
+      "Gold",
+      "Silver",
+      "Bronze",
+      "Medals per $100B GDP"
+    ),
+    caption = "Top 15 Medal-Winning Countries at the 2016 Rio Summer Olympics Compared with World Bank GDP (NY.GDP.MKTP.CD)"
+  )
+```
+:::

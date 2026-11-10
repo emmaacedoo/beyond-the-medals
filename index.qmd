@@ -1,6 +1,6 @@
 ---
 title: "Europe vs. America: Who Dominates the Olympics?"
-subtitle: "Milestone 4 · Exploring 120 Years of Olympic History (1896–2016)"
+subtitle: "Milestone 6 · Exploring 120 Years of Olympic History (1896–2016)"
 author: "Emma Acedo Lapieza"
 date: today
 ---
@@ -105,8 +105,16 @@ This website expands my Milestone 2 and Milestone 3 work using the [**120 Years 
     <p>See which Olympic sports the United States, the 12 European nations, and Spain dominate across Summer and Winter Games.</p>
   </div>
   <div class="nav-card">
+    <h3><a href="money-and-medals.html">Does Money Buy Medals? →</a></h3>
+    <p>Exploration: Compare real World Bank GDP (NY.GDP.MKTP.CD) with unique Olympic event medals across countries and years (1960–2016).</p>
+  </div>
+  <div class="nav-card">
+    <h3><a href="barcelona-1992.html">Barcelona 1992 Story →</a></h3>
+    <p>Story: How hosting the 1992 Barcelona Games permanently transformed Spain's Olympic medal performance before, during, and after 1992.</p>
+  </div>
+  <div class="nav-card">
     <h3><a href="about.html">About the Project →</a></h3>
-    <p>Learn more about the author (Emma Acedo Lapieza), project methodology, and full Kaggle dataset attribution.</p>
+    <p>Learn more about the author (Emma Acedo Lapieza), project methodology, and full Kaggle & World Bank dataset attribution.</p>
   </div>
 </div>
 :::

@@ -15,17 +15,21 @@ website:
         href: usa-vs-europe.qmd
       - text: "Sports"
         href: sports.qmd
+      - text: "Money & Medals"
+        href: money-and-medals.qmd
+      - text: "Barcelona 1992"
+        href: barcelona-1992.qmd
       - text: "About"
         href: about.qmd
     right:
       - icon: github
-        href: https://github.com/emmaacedoo/milestone-4
+        href: https://github.com/emmaacedoo/beyond-the-medals
         aria-label: "GitHub Repository"
   page-footer:
     background: "#0b1021"
     foreground: "#cbd5e1"
-    left: "Created by Emma Acedo Lapieza · Milestone 4"
-    right: "Data: 120 Years of Olympic History (1896–2016) · Kaggle"
+    left: "Created by Emma Acedo Lapieza · Milestone 6"
+    right: "Data: 120 Years of Olympic History (1896–2016) & World Bank GDP"
 
 format:
   html:
